@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<opencv_storage>
+
+<!-- PREPARE:  0 -->
+<!-- PCA:      1 -->
+<!-- TRAIN:    2 -->
+<!-- TEST:     3 -->
+<!-- CLASSIFY: 4 -->
+<phase>4</phase>
+<input_dir>/home/anhxtuan/Documents/Digits_Letters/Letter_classifier/</input_dir>
+
+<letter_size>20 14</letter_size>
+<max_samples_class>200</max_samples_class>
+<dataset_bin_filename>dataset/raw_images.bin</dataset_bin_filename>
+<labels_bin_filename>dataset/labels.bin</labels_bin_filename>
+<classes_bin_filename>dataset/96/classes.bin</classes_bin_filename>
+<pca_mean_bin_filename>dataset/96/pca_mean.bin</pca_mean_bin_filename>
+<pca_coeff_bin_filename>dataset/96/pca_coeff.bin</pca_coeff_bin_filename>
+<pca_trans_bin_filename>dataset/pca_trans.bin</pca_trans_bin_filename>
+<pca_max_comp>0</pca_max_comp>
+<pca_ret_var>0.9</pca_ret_var>
+
+
+<svm_model_file_name>svm_models/digits_classifier_96.xml</svm_model_file_name>
+<svm_max_iter>10000</svm_max_iter>
+<svm_epsilon>1e-7</svm_epsilon>
+<n_folds>5</n_folds>
+<c_grid_min_val>0.01</c_grid_min_val>
+<c_grid_max_val>10</c_grid_max_val>
+<c_grid_log_step>5</c_grid_log_step>
+<gamma_grid_min_val>0.0001</gamma_grid_min_val>
+<gamma_grid_max_val>10</gamma_grid_max_val>
+<gamma_grid_log_step>5</gamma_grid_log_step>
+</opencv_storage>
