@@ -74,7 +74,7 @@ void LPR::MSERExtract(const cv::Mat &img, bool box_long,  cv::Mat &dst)
 			it++;
 		}
 	}
-	DrawBoxesAndShow(dst, boundRect, "MSER");
+	help::DrawBoxesAndShow(dst, boundRect, "MSER");
 
 //	for( size_t i = 0; i< mserContours.size(); i++ )
 //	{
@@ -89,7 +89,8 @@ void LPR::MSERExtract(const cv::Mat &img, bool box_long,  cv::Mat &dst)
 void LPR::DetectLP(const cv::Mat &src)
 {
 	cv::Mat img;
-	float ratio = float(src.rows)/config.lp_detect_area_height;
+//	float ratio = float(src.rows)/config.lp_detect_area_height;
+	float ratio = 1.;
 	cv::resize(src, img, cv::Size(), ratio, ratio);
 	DMESG("1/ Cascade detector", 1);
 	std::vector< std::vector< cv::Rect > > LPboxes;
@@ -329,7 +330,7 @@ void LPR::MatchingMethod(const cv::Mat &img, const LP_Candidate &candidate, cv::
 	match.x += extend_crop.x;
 	match.y += extend_crop.y;
 
-	cv::imshow( "Img", img_display );
+//	cv::imshow( "Img", img_display );
 }
 
 void LPR::CAMshiftMatching(const cv::Mat &img, const LP_Candidate &candidate, cv::Rect &match)
@@ -345,7 +346,7 @@ void LPR::CAMshiftMatching(const cv::Mat &img, const LP_Candidate &candidate, cv
 	cv::cvtColor(obj, obj, CV_RGB2HSV);
 	cv::split(obj, channels);
 
-	DoHist(channels[0]);
+	help::DoHist(channels[0]);
 }
 
 float LPR::CalculateMatchDistance(const cv::Mat &img1, const cv::Mat &img2)
@@ -423,11 +424,6 @@ void LPR::FindLicenseNumber(const cv::Mat &img)
 
 		if (digit_boxes.size() <= 2)
 		{
-//			cv::imshow("REMOVE CANDIDATE", it->lp_img);
-//			std::cout << "Image size: " << it->lp_img.rows << " x " << it->lp_img.cols << std::endl;
-//			std::cout << RED_TEXT << "REMOVE CANDIDATE" << NORMAL_TEXT << std::endl;
-//			cv::waitKey(0);
-//			cv::destroyWindow("REMOVE CANDIDATE");
 			it = lp_candidates.erase(it);
 		}
 		else
@@ -435,29 +431,80 @@ void LPR::FindLicenseNumber(const cv::Mat &img)
 			TextIsForeground(label, digit_boxes);
 			cv::imshow("Labels", label);
 			it->digit_candidates.clear();
-			std::sort(digit_boxes.begin(), digit_boxes.end(), LPTextLocCompare);
 
-
-			for ( size_t i = 1; i < digit_boxes.size(); i++ )
+			for (std::vector< cv::Rect >::iterator box_it = digit_boxes.begin(); box_it != digit_boxes.end(); )
 			{
-				DMESG("ratio :" << double(digit_boxes[i].height)/digit_boxes[i].width, 3);
-				if (double(digit_boxes[i].height)/digit_boxes[i].width < 1.0)
+				double ratio = double(box_it->height)/box_it->width;
+				int num_letter = int(std::round(HEIGHT_WIDTH_RATIO/ratio*2));
+				DMESG("ratio :" << 1/ratio << " -- " << num_letter << " -- " << HEIGHT_WIDTH_RATIO/ratio*2, 3);
+
+//				std::stringstream ss;
+//				double value = HEIGHT_WIDTH_RATIO/ratio*2;
+//				ss << value;
+//				help::Write2Text("ratio_stats.txt", ss.str(), true);
+
+				if (num_letter == 1)
 				{
-					cv::Mat blur_img, sharpen_img;
-					cv::Mat src = it->lp_img(digit_boxes[i]).clone();
-					src.convertTo(src, CV_8U);
-					cv::GaussianBlur(src, blur_img, cv::Size(0, 0), 5);
-					cv::GaussianBlur(blur_img, blur_img, cv::Size(0, 0), 5);
-					cv::addWeighted(src, 16, blur_img, -15, 0, sharpen_img);
-					cv::imshow("1 sharpen_img 1", sharpen_img);
-					cv::threshold(sharpen_img, sharpen_img, 0.1, 1, CV_THRESH_BINARY);
-					cv::Mat kernel = getStructuringElement(cv::MORPH_RECT, cv::Size(7, 7));
-					cv::morphologyEx(sharpen_img, sharpen_img, cv::MORPH_OPEN, kernel);
-					cv::imshow("2 sharpen_img 2", sharpen_img);
-					cv::waitKey(0);
+					// Do nothing: it would be an I
 				}
+				else if (num_letter == 2)
+				{
+
+				}
+				else if (num_letter == 4)
+				{
+					cv::Rect additional_box(box_it->x + box_it->width/2, box_it->y, box_it->width/2, box_it->height);
+					box_it->width = box_it->width/2;
+					digit_boxes.push_back(additional_box);
+				}
+				else if (num_letter == 6)
+				{
+					cv::Rect additional_box_1(box_it->x + box_it->width/3, box_it->y, box_it->width/3, box_it->height);
+					digit_boxes.push_back(additional_box_1);
+					cv::Rect additional_box_2(box_it->x + 2*box_it->width/3, box_it->y, box_it->width/3, box_it->height);
+					digit_boxes.push_back(additional_box_2);
+					box_it->width = box_it->width/3;
+				}
+				else if (num_letter == 3)
+				{
+					cv::Mat src = label(*box_it).clone();
+					std::vector< int > data;
+					int bin_w = 1;
+					for ( int i = 0; i < src.cols - 2; i +=  bin_w)
+					{
+						int non_zero = cv::countNonZero(src(cv::Rect(i, 0, bin_w, src.rows)));
+						data.push_back(non_zero);
+					}
+
+					int start = 10;
+					int end = box_it->width - 10;
+					int min = box_it->height;
+					int min_idx;
+					for ( int j = start; j < end; j++ )
+					{
+						if (data[j] < min)
+						{
+							min = data[j];
+							min_idx = j;
+						}
+					}
+
+					cv::Rect additional_box(box_it->x + min_idx, box_it->y, box_it->width - min_idx, box_it->height);
+					digit_boxes.push_back(additional_box);
+					box_it->width = min_idx;
+					help::PlotChart(data, "Chart");
+				}
+
+				if (num_letter == 0)
+					box_it = digit_boxes.erase(box_it);
+				else
+					box_it++;
+
 			}
 
+			std::sort(digit_boxes.begin(), digit_boxes.end(), LPTextLocCompare);
+
+			// Find row number for boxes
 			int row = 0;
 			int row_0_cnt = 0;
 			std::vector< cv::Point > centers;
@@ -472,17 +519,44 @@ void LPR::FindLicenseNumber(const cv::Mat &img)
 					if (digit_boxes[i - 1].y + digit_boxes[i - 1].height/2 < digit_boxes[i].y)
 						row++;
 				}
-				else
-				{
 
-				}
 				if (row == 0)
 					row_0_cnt++;
-				bool digit_exist = false;
 
-				if (!digit_exist)
+				it->AddDigit(digit_boxes[i], row);
+			}
+
+			if (it->box_long)
+			{
+				for ( size_t i = 0; i < it->digit_candidates.size() - 1; i++ )
 				{
-					it->AddDigit(digit_boxes[i], row);
+					if (it->digit_candidates[i].row == it->digit_candidates[i + 1].row)
+					{
+						double ratio = double(it->digit_candidates[i].box.height)/(it->digit_candidates[i + 1].box.x - it->digit_candidates[i].box.br().x);
+						int num_letter = int(std::round(HEIGHT_WIDTH_RATIO/ratio*2));
+						std::cout << BLUE_TEXT << "num_letter: " << NORMAL_TEXT << num_letter << " -- " << HEIGHT_WIDTH_RATIO/ratio*2 << std::endl;
+						if ((HEIGHT_WIDTH_RATIO/ratio*2 > 0.8))
+						{
+							cv::Rect additional_box(it->digit_candidates[i].box.br().x, it->digit_candidates[i].box.y,
+									(it->digit_candidates[i + 1].box.x - it->digit_candidates[i].box.br().x), it->digit_candidates[i].box.height);
+							it->AddDigit(additional_box, 0);
+						}
+					}
+				}
+			}
+			else
+			{
+				for ( size_t i = 0; i < it->digit_candidates.size() - 1; i++ )
+				{
+					double ratio = double(it->digit_candidates[i].box.height)/(it->digit_candidates[i + 1].box.x - it->digit_candidates[i].box.br().x);
+					int num_letter = int(std::round(HEIGHT_WIDTH_RATIO/ratio*2));
+					std::cout << BLUE_TEXT << "num_letter: " << NORMAL_TEXT << num_letter << " -- " << HEIGHT_WIDTH_RATIO/ratio*2 << std::endl;
+					if ((HEIGHT_WIDTH_RATIO/ratio*2 > 0.8))
+					{
+						cv::Rect additional_box(it->digit_candidates[i].box.br().x, it->digit_candidates[i].box.y,
+								(it->digit_candidates[i + 1].box.x - it->digit_candidates[i].box.br().x), it->digit_candidates[i].box.height);
+						it->AddDigit(additional_box, 0);
+					}
 				}
 			}
 
@@ -501,7 +575,7 @@ void LPR::FindLicenseNumber(const cv::Mat &img)
 					cv::fitLine(first_row, first_line, CV_DIST_L2, 0, 0.01, 0.01);
 					first_line_valid = true;
 //					std::cout << BLUE_TEXT << "First Line: " << NORMAL_TEXT << first_line[0] << "x + " << first_line[1] << "y + ";
-//					std::cout << -(first_line[0]*first_line[2] + first_line[1]*first_line[3]) << " = 0"<< std::endl;
+					std::cout << -(first_line[0]*first_line[2] + first_line[1]*first_line[3]) << " = 0"<< std::endl;
 				}
 				std::vector< cv::Point > second_row(centers.begin() + row_0_cnt + 1, centers.end());
 				if (second_row.size() >= 2)
@@ -509,7 +583,7 @@ void LPR::FindLicenseNumber(const cv::Mat &img)
 					cv::fitLine(second_row, second_line, CV_DIST_L2, 0, 0.01, 0.01);
 					second_line_valid = true;
 //					std::cout << BLUE_TEXT << "Second Line: " << NORMAL_TEXT  << second_line[0] << "x + " << second_line[1] << "y + ";
-//					std::cout << -(second_line[0]*second_line[2] + second_line[1]*second_line[3]) << " = 0"<< std::endl;
+					std::cout << -(second_line[0]*second_line[2] + second_line[1]*second_line[3]) << " = 0"<< std::endl;
 				}
 
 				if (second_line_valid && (!first_line_valid))
@@ -550,100 +624,21 @@ void LPR::FindLicenseNumber(const cv::Mat &img)
 //					cv::circle(disp_label, cv::Point(int(line[2]), int(line[3])), 3, cv::Scalar(0, 255, 0), -1);
 //					cv::imshow("Line", disp_label);
 					double angle = std::atan2(line[1], line[0]);
-					Rotate(disp_label, angle, disp_label);
+					help::Rotate(disp_label, angle, disp_label);
 //					cv::imshow("Rotated Line", disp_label);
 
-					cv::Rect crop_row(0, std::cos(angle)*(line[3] - line[1]*line[2]/line[0] - average_height/2) - 10, disp_label.cols, std::cos(angle)*average_height + 20);
+					cv::Rect crop_row(0, std::cos(angle)*(line[3] - line[1]*line[2]/line[0] - average_height/2), disp_label.cols, std::cos(angle)*average_height);
 					cv::Mat rotated_row = disp_label(crop_row);
 //					cv::imshow("Rotated Row", rotated_row);
 
-					std::vector< int > data;
-					int bin_w = 1;
-					for ( int i = 0; i < rotated_row.cols - 2; i +=  bin_w)
-					{
-						int non_zero = cv::countNonZero(rotated_row(cv::Rect(i, 0, bin_w, rotated_row.rows)));
-//						std::cout << non_zero << " ";
-						data.push_back(non_zero);
-					}
 
-					int num_up_peak = 0, num_down_peak = 0;
-					bool on_down_peak = false, on_up_peak = false;
-					int max_element = rotated_row.rows;
-					for ( size_t i = 0; i < data.size(); i++ )
-					{
-						if ((data[i] == 0) && (!on_down_peak))
-						{
-							num_down_peak++;
-							on_down_peak = true;
-						}
-						else if (data[i] != 0)
-						{
-							on_down_peak = false;
-						}
-
-						if ((data[i] == max_element) && (!on_up_peak))
-						{
-							num_up_peak++;
-							on_up_peak = true;
-						}
-						else if (data[i] != max_element)
-						{
-							on_up_peak = false;
-						}
-					}
-//					std::cout << "max_element: " << max_element << std::endl;
-//					std::cout << "num_down_peak: " << num_down_peak << std::endl;
-//					std::cout << "num_up_peak: " << num_up_peak << std::endl;
-					if (num_up_peak > num_down_peak)
-					{
-						cv::bitwise_not(rotated_row, rotated_row);
-						for ( size_t i = 0; i < data.size(); i++ )
-						{
-							data[i] = max_element - data[i];
-						}
-					}
-
-					int gap_w = 0;
-					for ( size_t i = 0; i < data.size(); i++ )
-					{
-						if (data[i] <= 0.3*max_element)
-						{
-							gap_w++;
-						}
-						else
-						{
-
-							if ((gap_w < 18) && (gap_w > 8))
-							{
-//								std::cout << i << " -- " << gap_w << std::endl;;
-//								cv::Mat zero = cv::Mat::zeros(max_element, gap_w, rotated_row.type());
-//								zero.copyTo(rotated_row(cv::Rect(i - gap_w + 1, 0, gap_w, max_element)));
-							}
-							gap_w = 0;
-						}
-					}
-//					std::cout << std::endl;
-
-
-					//** Perform opening
-//					std::cout << "average_height: " << average_height  << " -- " << 0.15*average_height << std::endl;
-//					cv::Mat kernel = getStructuringElement(cv::MORPH_RECT, cv::Size(1, 0.12*average_height));
-//					cv::morphologyEx(rotated_row, rotated_row, cv::MORPH_ERODE, kernel);
-//					cv::morphologyEx(rotated_row, rotated_row, cv::MORPH_DILATE, kernel);
-
-//					cv::Mat chart;
-//					PlotChart(data, chart);
-//					cv::cvtColor(rotated_row, rotated_row, CV_GRAY2RGB);
-//					cv::resize(chart, chart, cv::Size(rotated_row.cols, chart.rows));
-//					cv::vconcat(rotated_row, chart, chart);
-//					cv::imshow("Chart", chart);
-//					cv::waitKey(0);
 				}
 			}
 
 //			std::sort(it->digit_candidates.begin(), it->digit_candidates.end(), DigitCandidateTextLocCompare);
-//			DrawBoxesAndShow(it->lp_img, it->digit_boxes, "Digits");
-//			std::cout << "Image size: " << it->lp_img.rows << " x " << it->lp_img.cols << std::endl;
+			help::DrawBoxesAndShow(it->lp_img, it->GetDigitBoxes(), "Digits");
+//			cv::waitKey(0);
+			std::cout << "Image size: " << it->lp_img.rows << " x " << it->lp_img.cols << std::endl;
 
 			it->license_number = ClassifyDigits((*it));
 			DMESG("ID: " << YELLOW_TEXT << it->id << NORMAL_TEXT <<  " -- License number: " << GREEN_TEXT << it->license_number << NORMAL_TEXT, 3);
@@ -696,7 +691,7 @@ void LPR::GetDigitBoxes(cv::Mat &src, bool box_long, std::vector< cv::Rect > &di
 
 	cv::medianBlur(labels, labels, 5);
 
-//	cv::Mat kernel = getStructuringElement(cv::MORPH_RECT, cv::Size(5, 5));
+//	cv::Mat kernel = getStructuringElement(cv::MORPH_RECT, cv::Size(9, 9));
 //	cv::morphologyEx(labels, labels, cv::MORPH_CLOSE, kernel);
 	FindBoundContourBox(labels, box_long, digit_boxes);
 	FilterOutlierByHeight(digit_boxes);
@@ -886,7 +881,7 @@ void LPR::ShowLPs()
 {
 	if (lp_candidates.size() == 0)
 	{
-		cv::destroyWindow("License Plate");
+//		cv::destroyWindow("License Plate");
 		return;
 	}
 
@@ -915,7 +910,10 @@ void LPR::ShowLPs()
 		cv::Mat lp = lp_candidates[i].lp_img.clone();
 		std::vector< cv::Rect > digit_boxes = lp_candidates[i].GetDigitBoxes();
 		for ( size_t j = 0; j < digit_boxes.size(); j++)
+		{
 			cv::rectangle( lp, digit_boxes[j], cv::Scalar(50*j, 80*j, 255), 1, 8, 0);
+			help::DrawText(lp_candidates[i].license_number.substr(j, 1), digit_boxes[j].tl(), lp);
+		}
 
 		cv::circle(lp, cv::Point(lp.cols/2, lp.rows/2), 2, cv::Scalar(255, 255, 0), -1);
 		if (lp_candidates[i].box_long)
@@ -931,6 +929,32 @@ void LPR::ShowLPs()
 	}
 
 	cv::imshow("License Plate", display);
+}
+
+void LPR::LetterSpaceFilter(cv::Mat &data, int kernel_size, cv::Mat &dst)
+{
+	assert(data.rows == 1);
+	assert(kernel_size % 2 == 1);
+	if (data.type() != CV_32F)
+		data.convertTo(data, CV_32F);
+
+	dst = cv::Mat(data.size(), data.type());
+	int tau = kernel_size/2;
+
+	cv::Mat padding_data = cv::Mat::zeros(data.rows, data.cols + tau*2, data.type());
+	data.copyTo(padding_data(cv::Rect(tau, 0, data.cols, data.rows)));
+
+	float aux;
+	const float *s = padding_data.ptr<float>(0);
+	float *d = dst.ptr<float>(0);
+	for ( int c = tau; c < data.cols + tau; c++ )
+	{
+		aux = 2*s[c];
+		aux -= s[c - tau];
+		aux -= s[c + tau];
+		aux += std::abs( ( s[c - tau] - s[c + tau] ) );
+		d[c - tau] = float(aux);
+	}
 }
 
 void LPR::SaveLPs(const std::string &filename_template)

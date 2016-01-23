@@ -37,6 +37,7 @@ std::string video_file;
 int SKIP_FRAME = 0;
 bool PRINT_TIME = false;
 int WAIT_TIME = 0;
+int START_FRAME = 0;
 
 int DEBUG_LEVEL = std::numeric_limits<int>::max();
 
@@ -49,6 +50,7 @@ inline void Help()
 	std::cout << "	-time " << std::endl;
 	std::cout << "	-debug <DEBUG_LEVEL> " << std::endl;
 	std::cout << "	-wait <WAIT_TIME> " << std::endl;
+	std::cout << "	-start <START_FRAME> " << std::endl;
 }
 
 inline void ArgumentParser(int argc, char** argv)
@@ -84,6 +86,11 @@ inline void ArgumentParser(int argc, char** argv)
 			i++;
 			WAIT_TIME = std::atoi(argv[i]);
 		}
+		else if( strcmp(argv[i],"-start") == 0 )
+		{
+			i++;
+			START_FRAME = std::atoi(argv[i]);
+		}
 	}
 }
 
@@ -93,7 +100,7 @@ int main(int argc, char** argv) {
 		Help();
 		return 1;
 	}
-	cvwin org_frame("Original");
+//	cvwin org_frame("Original");
 
 	timer licen_timer("Detect LP: 	");
 	timer digit_timer("Get digits:	");
@@ -113,11 +120,11 @@ int main(int argc, char** argv) {
 		std::cerr << "ERROR: Cannot open the video file" << std::endl;
 		return false;
 	}
-
 	int width = cap.get(CV_CAP_PROP_FRAME_WIDTH);
 	int height = cap.get(CV_CAP_PROP_FRAME_HEIGHT);
 	std::cout << "Video size: " << GREEN_TEXT << width << " x " << height << NORMAL_TEXT << std::endl;
-	int fps = cap.get(CV_CAP_PROP_FPS);
+//	int fps = cap.get(CV_CAP_PROP_FPS);
+	cap.set(CV_CAP_PROP_POS_FRAMES, START_FRAME);
 
 	cv::Rect crop(0, height*3/10, width, height/2);
 	cv::Mat frame, detect_area, result;

@@ -199,11 +199,11 @@ void LetterClassifier::PrepareDataset()
 	LoadImages(file_names, dataset, labels, test_dataset, test_labels);
 	ShuffleDataset(dataset, labels);
 
-	StoreDataset(params.dataset_bin_filename, dataset);
-	StoreDataset(params.labels_bin_filename, labels);
-	StoreDataset(params.test_dataset_bin_filename, test_dataset);
-	StoreDataset(params.test_labels_bin_filename, test_labels);
-	StoreDataset(params.classes_bin_filename, classes);
+	help::StoreDataset(params.dataset_bin_filename, dataset);
+	help::StoreDataset(params.labels_bin_filename, labels);
+	help::StoreDataset(params.test_dataset_bin_filename, test_dataset);
+	help::StoreDataset(params.test_labels_bin_filename, test_labels);
+	help::StoreDataset(params.classes_bin_filename, classes);
 }
 
 void LetterClassifier::PrepareDataset(std::vector< std::string > classes, cv::Mat dataset, cv::Mat labels)
@@ -214,25 +214,25 @@ void LetterClassifier::PrepareDataset(std::vector< std::string > classes, cv::Ma
 	LoadImages(file_names, dataset, labels, test_dataset, test_labels);
 	ShuffleDataset(dataset, labels);
 
-	StoreDataset(params.dataset_bin_filename, dataset);
-	StoreDataset(params.labels_bin_filename, labels);
-	StoreDataset(params.test_dataset_bin_filename, test_dataset);
-	StoreDataset(params.test_labels_bin_filename, test_labels);
-	StoreDataset(params.classes_bin_filename, classes);
+	help::StoreDataset(params.dataset_bin_filename, dataset);
+	help::StoreDataset(params.labels_bin_filename, labels);
+	help::StoreDataset(params.test_dataset_bin_filename, test_dataset);
+	help::StoreDataset(params.test_labels_bin_filename, test_labels);
+	help::StoreDataset(params.classes_bin_filename, classes);
 }
 
 void LetterClassifier::GetTrainDataset(std::vector< std::string > &classes, cv::Mat &dataset, cv::Mat &labels)
 {
-	LoadDataset(params.dataset_bin_filename, dataset);
-	LoadDataset(params.labels_bin_filename, labels);
-	LoadDataset(params.classes_bin_filename, classes);
+	help::LoadDataset(params.dataset_bin_filename, dataset);
+	help::LoadDataset(params.labels_bin_filename, labels);
+	help::LoadDataset(params.classes_bin_filename, classes);
 }
 
 void LetterClassifier::GetTestDataset(std::vector< std::string > &classes, cv::Mat &dataset, cv::Mat &labels)
 {
-	LoadDataset(params.test_dataset_bin_filename, dataset);
-	LoadDataset(params.test_labels_bin_filename, labels);
-	LoadDataset(params.classes_bin_filename, classes);
+	help::LoadDataset(params.test_dataset_bin_filename, dataset);
+	help::LoadDataset(params.test_labels_bin_filename, labels);
+	help::LoadDataset(params.classes_bin_filename, classes);
 }
 
 void LetterClassifier::PCAtransform(const cv::Mat &src, cv::Mat &mean, cv::Mat &coeffs, cv::Mat &dst)
@@ -295,9 +295,9 @@ void LetterClassifier::PCAtransform(const cv::Mat &src, cv::Mat &mean, cv::Mat &
 		coeffs.convertTo(coeffs, src.type());
 	dst = coeffs.t()*src;
 
-	StoreDataset(params.pca_mean_bin_filename, mean);
-	StoreDataset(params.pca_coeff_bin_filename, coeffs);
-	StoreDataset(params.pca_trans_bin_filename, dst);
+	help::StoreDataset(params.pca_mean_bin_filename, mean);
+	help::StoreDataset(params.pca_coeff_bin_filename, coeffs);
+	help::StoreDataset(params.pca_trans_bin_filename, dst);
 
 	this->mean = mean;
 	this->coeffs = coeffs;
@@ -305,9 +305,9 @@ void LetterClassifier::PCAtransform(const cv::Mat &src, cv::Mat &mean, cv::Mat &
 
 void LetterClassifier::GetPCAtransform(cv::Mat &mean, cv::Mat &coeffs, cv::Mat &dst)
 {
-	LoadDataset(params.pca_mean_bin_filename, mean);
-	LoadDataset(params.pca_coeff_bin_filename, coeffs);
-	LoadDataset(params.pca_trans_bin_filename, dst);
+	help::LoadDataset(params.pca_mean_bin_filename, mean);
+	help::LoadDataset(params.pca_coeff_bin_filename, coeffs);
+	help::LoadDataset(params.pca_trans_bin_filename, dst);
 }
 
 void LetterClassifier::CvSvmAutoTrain(const cv::Mat &src, const cv::Mat &labels)
@@ -345,9 +345,9 @@ double LetterClassifier::Accuracy(const cv::Mat &labels, const cv::Mat &predicts
 
 void LetterClassifier::LoadPCAcoeffs()
 {
-	LoadDataset(params.pca_coeff_bin_filename, coeffs);
-	LoadDataset(params.pca_mean_bin_filename, mean);
-	LoadDataset(params.classes_bin_filename, classes);
+	help::LoadDataset(params.pca_coeff_bin_filename, coeffs);
+	help::LoadDataset(params.pca_mean_bin_filename, mean);
+	help::LoadDataset(params.classes_bin_filename, classes);
 }
 
 int LetterClassifier::Classify(const cv::Mat &img)

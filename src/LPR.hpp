@@ -31,6 +31,8 @@
 #define BOX_LP					( true )
 #define LONG_LP					( false )
 
+#define HEIGHT_WIDTH_RATIO		( 1.393 )
+
 
 class LPR {
 private:
@@ -261,6 +263,8 @@ private:
 	void IncreaseContrast(const cv::Mat &src, cv::Mat &dst, cv::Vec2i in = cv::Vec2i(0, 255));
 
 	void TextIsForeground(cv::Mat &img, std::vector< cv::Rect > &boxes);
+
+	void LetterSpaceFilter(cv::Mat &data, int kernel_size, cv::Mat &kernel);
 
 	static bool DigitCandidateTextLocCompare(Digit_Candidate first, Digit_Candidate second);
 public:

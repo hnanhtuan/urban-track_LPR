@@ -48,52 +48,68 @@ BOOST_SERIALIZATION_SPLIT_FREE(::cv::Mat)
 #define Z_TRANSLATION	(380)
 #define FOCAL_IN_PX		(378)
 
-void PlotChart(std::vector< int > data, cv::Mat &chart);
+namespace help {
+	void Write2Text(const std::string &text_file_name, const std::string &msg, bool append = false);
 
-void Padding(const cv::Mat &src, int pad_size_x, int pad_size_y, cv::Mat &dst);
+	void DrawText(const std::string &msg, const cv::Point &loc, cv::Mat &img);
 
-void Rotate(const cv::Mat& src, double angle_radian, cv::Mat& dst);
+	void Filter1D(std::vector<int> &data, cv::Mat &kernel, cv::Mat &dst);
 
-void ImAdjust(const cv::Mat &src, cv::Mat &dst, int tol = 1);
+	void Filter1D(cv::Mat &data, cv::Mat &kernel, cv::Mat &dst);
 
-void ImAdjust(const cv::Mat &src, cv::Mat &dst, cv::Vec2i in = cv::Vec2i(0, 255));
+	void PlotChart(std::vector< int > data, std::string win_name = "Chart");
 
-void DoHist(const cv::Mat &img, bool wait = false);
+	void PlotChart(std::vector< int > data, cv::Mat &chart);
 
-void CreateDirectory(const std::string &path);
+	void PlotChart(const cv::Mat &data, std::string win_name = "Chart");
 
-void CopyNonZero(cv::Mat &src, cv::Mat &dst);
+	void PlotChart(const cv::Mat &data, cv::Mat &chart, std::string win_name = "Chart");
 
-void GetTrainingImages(const std::string input_dir, std::vector< std::vector< std::string > > &file_names, std::vector< std::string > &classes);
+	void Padding(const cv::Mat &src, int pad_size_x, int pad_size_y, cv::Mat &dst);
 
-void SaveImage(const cv::Mat &img, const std::string file_name_format, int file_num = -1);
+	void Rotate(const cv::Mat& src, double angle_radian, cv::Mat& dst);
 
-void DrawBoxes(const cv::Mat &src, const std::vector< cv::Rect > boxes, cv::Mat &dst);
+	void ImAdjust(const cv::Mat &src, cv::Mat &dst, int tol = 1);
 
-void DrawBoxesAndShow(cv::Mat &src, std::vector< cv::Rect > boxes, std::string win_name = "box", bool wait = false);
+	void ImAdjust(const cv::Mat &src, cv::Mat &dst, cv::Vec2i in = cv::Vec2i(0, 255));
 
-bool IsExist(const std::string &filename);
+	void DoHist(const cv::Mat &img, bool wait = false);
 
-void RemoveFiles(const std::string &filename);
+	void CreateDirectory(const std::string &path);
 
-const std::string CurrentDateTime();
+	void CopyNonZero(cv::Mat &src, cv::Mat &dst);
 
-void StoreDataset(const std::string &filename, const cv::Mat& m);
+	void GetTrainingImages(const std::string input_dir, std::vector< std::vector< std::string > > &file_names, std::vector< std::string > &classes);
 
-void StoreDataset(const std::string &filename, const std::vector< std::string > &vec);
+	void SaveImage(const cv::Mat &img, const std::string file_name_format, int file_num = -1);
 
-void LoadDataset(const std::string &filename, cv::Mat& m);
+	void DrawBoxes(const cv::Mat &src, const std::vector< cv::Rect > boxes, cv::Mat &dst);
 
-void LoadDataset(const std::string &filename, std::vector< std::string > &vec);
+	void DrawBoxesAndShow(cv::Mat &src, std::vector< cv::Rect > boxes, std::string win_name = "box", bool wait = false);
 
-void CopyFile(const std::string &src_file, const std::string &dst_file);
+	bool IsExist(const std::string &filename);
 
-void Rotate3D(const cv::Mat &img, cv::Mat &dst, float theta, float gamma, float beta);
+	void RemoveFiles(const std::string &filename);
 
-template<typename T>
-void Cv_mat_to_arma_mat(const cv::Mat_<T>& cv_mat_in, arma::Mat<T>& arma_mat_out);
+	const std::string CurrentDateTime();
 
-template<typename T>
-void Arma_mat_to_cv_mat(const arma::Mat<T>& arma_mat_in, cv::Mat_<T>& cv_mat_out);
+	void StoreDataset(const std::string &filename, const cv::Mat& m);
+
+	void StoreDataset(const std::string &filename, const std::vector< std::string > &vec);
+
+	void LoadDataset(const std::string &filename, cv::Mat& m);
+
+	void LoadDataset(const std::string &filename, std::vector< std::string > &vec);
+
+	void CopyFile(const std::string &src_file, const std::string &dst_file);
+
+	void Rotate3D(const cv::Mat &img, cv::Mat &dst, float theta, float gamma, float beta);
+
+	template<typename T>
+	void Cv_mat_to_arma_mat(const cv::Mat_<T>& cv_mat_in, arma::Mat<T>& arma_mat_out);
+
+	template<typename T>
+	void Arma_mat_to_cv_mat(const arma::Mat<T>& arma_mat_in, cv::Mat_<T>& cv_mat_out);
+}
 
 #endif /* HELPFNC_HPP_ */
