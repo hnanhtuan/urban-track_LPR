@@ -112,7 +112,6 @@ void DrawText(const std::string &msg, const cv::Point &loc, cv::Mat &img)
 		CV_FONT_HERSHEY_COMPLEX, font_size, cv::Scalar(100, 255, 0), font_thickness);
 }
 
-
 void Filter1D(std::vector<int> &vec_data, cv::Mat &kernel, cv::Mat &dst)
 {
 	cv::Mat data = cv::Mat(vec_data);

@@ -438,13 +438,16 @@ void LPR::FindLicenseNumber(const cv::Mat &img)
 			DMESG(RED_TEXT << "avg text ratio: " << NORMAL_TEXT << avg_ratio, 3);
 			if (!it->box_long)
 			{
-				DMESG(RED_TEXT << "Adjust lp area" << NORMAL_TEXT, 3);
-				double scale = (avg_ratio/config.long_ideal_text_height) - 1.0;
-				cv::Rect new_lp_crop;
-				help::GetBiggerOrSmallerArea(img, it->bounding_box, scale*1.2, scale*1.2, new_lp_crop);
-				cv::Mat new_lp_img = img(new_lp_crop);
-				it->Update(new_lp_img, new_lp_crop);
-				GetDigitBoxes(it->lp_img, it->box_long, digit_boxes, label);
+				if ((avg_ratio < 0.46) || (avg_ratio > 0.52))
+				{
+					DMESG(RED_TEXT << "Adjust lp area" << NORMAL_TEXT, 3);
+					double scale = (avg_ratio/config.long_ideal_text_height) - 1.0;
+					cv::Rect new_lp_crop;
+					help::GetBiggerOrSmallerArea(img, it->bounding_box, scale*1.2, scale*1.2, new_lp_crop);
+					cv::Mat new_lp_img = img(new_lp_crop);
+					it->Update(new_lp_img, new_lp_crop);
+					GetDigitBoxes(it->lp_img, it->box_long, digit_boxes, label);
+				}
 			}
 
 			TextIsForeground(label, digit_boxes);
@@ -874,11 +877,11 @@ void LPR::TextIsForeground(cv::Mat &img, std::vector< cv::Rect > &boxes)
 		cv::Rect box = boxes[i];
 		if ((box.x > 0) && (box.y > 0) && (box.br().x < img.cols - 1) && (box.br().y < img.rows - 1))
 		{
-			for ( int r = box.y + 1; r < box.br().y; r++ )
-			{
-				non_zero_cnt += int(img.at<uchar>(r, box.x) > 0);
-				non_zero_cnt += int(img.at<uchar>(r, box.br().x) > 0);
-			}
+//			for ( int r = box.y + 1; r < box.br().y; r++ )
+//			{
+//				non_zero_cnt += int(img.at<uchar>(r, box.x) > 0);
+//				non_zero_cnt += int(img.at<uchar>(r, box.br().x) > 0);
+//			}
 
 			cv::Mat border = img(cv::Rect(box.x - 1, box.y - 1, box.width + 2, box.height + 2)).clone();
 			cv::Mat zero = cv::Mat::zeros(box.size(), img.type());
