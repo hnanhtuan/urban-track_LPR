@@ -49,6 +49,22 @@ BOOST_SERIALIZATION_SPLIT_FREE(::cv::Mat)
 #define FOCAL_IN_PX		(378)
 
 namespace help {
+	std::string Num2String(int num, int padding_width = 0);
+
+	void GetBiggerOrSmallerArea(const cv::Mat &img, const cv::Rect &crop, double scale_x, double scale_y, cv::Mat &scale_img);
+
+	void GetBiggerOrSmallerArea(const cv::Mat &img, const cv::Rect &crop, double shrink_x, double shrink_y, cv::Rect &shrink_crop);
+
+	void GetSmallerArea(const cv::Mat &img, const cv::Rect &crop, double shrink_x, double shrink_y, cv::Mat &shrink_img);
+
+	void GetSmallerArea(const cv::Mat &img, const cv::Rect &crop, double shrink_x, double shrink_y, cv::Rect &shrink_crop);
+
+	bool IsRectsOverlap(const cv::Rect &first, const cv::Rect &second);
+
+	void GetBiggerArea(const cv::Mat &img, const cv::Rect &crop, double extend_x, double extend_y, cv::Mat &crop_img);
+
+	void GetBiggerArea(const cv::Mat &img, const cv::Rect &crop, double extend_x, double extend_y, cv::Rect &extend_crop);
+
 	void Write2Text(const std::string &text_file_name, const std::string &msg, bool append = false);
 
 	void DrawText(const std::string &msg, const cv::Point &loc, cv::Mat &img);

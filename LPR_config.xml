@@ -7,16 +7,18 @@
 <filter_by_size>true</filter_by_size>
 <tripple_check>false</tripple_check>
 <lp_detect_area_height>360</lp_detect_area_height>
-<min_box>50 30</min_box>
+<min_box>58 35</min_box>
 <max_box>150 90</max_box>
-<min_long>90 20</min_long>
+<min_long>113 20</min_long>
 <max_long>225 50</max_long>
 
 <text_box_resize>200</text_box_resize>
 <box_min_text_height>0.2</box_min_text_height>
 <box_max_text_height>0.45</box_max_text_height>
 <long_min_text_height>0.4</long_min_text_height>
-<long_max_text_height>0.87</long_max_text_height>
+<long_max_text_height>0.7</long_max_text_height>
+<long_ideal_text_height>0.48</long_ideal_text_height>
+
 <min_text_ratio>0.3</min_text_ratio>
 <max_text_ratio>1.8</max_text_ratio>
 <min_I_text_ratio>3.2</min_I_text_ratio>

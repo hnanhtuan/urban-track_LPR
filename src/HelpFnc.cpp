@@ -9,6 +9,79 @@
 
 namespace help {
 
+std::string Num2String(int num, int padding_width)
+{
+	std::stringstream ss;
+	ss << std::setfill('0') << std::setw(padding_width) << num;
+	return ss.str();
+}
+
+void GetBiggerOrSmallerArea(const cv::Mat &img, const cv::Rect &crop, double scale_x, double scale_y, cv::Mat &scale_img)
+{
+	cv::Rect scale_crop;
+	GetBiggerOrSmallerArea(img, crop, scale_x, scale_y, scale_crop);
+	scale_img = img(scale_crop);
+}
+
+void GetBiggerOrSmallerArea(const cv::Mat &img, const cv::Rect &crop, double scale_x, double scale_y, cv::Rect &scale_crop)
+{
+	assert(std::signbit(scale_x) == std::signbit(scale_y));
+	if (scale_x > 0)
+		GetBiggerArea(img, crop, scale_x, scale_y, scale_crop);
+	else
+		GetSmallerArea(img, crop, -scale_x, -scale_y, scale_crop);
+}
+
+void GetSmallerArea(const cv::Mat &img, const cv::Rect &crop, double shrink_x, double shrink_y, cv::Mat &shrink_img)
+{
+
+	cv::Rect shrink_crop;
+	GetBiggerArea(img, crop, shrink_x, shrink_y, shrink_crop);
+	shrink_img = img(shrink_crop);
+}
+
+void GetSmallerArea(const cv::Mat &img, const cv::Rect &crop, double shrink_x, double shrink_y, cv::Rect &shrink_crop)
+{
+	assert(shrink_x >= 0);
+	assert(shrink_y >= 0);
+	int x = crop.x + crop.width*(shrink_x/2);
+	int y = crop.y + crop.height*(shrink_y/2);
+	int w = crop.width*(1 - shrink_x);
+	int h = crop.height*(1 - shrink_y);
+
+	shrink_crop = cv::Rect(x, y, w, h);
+}
+
+bool IsRectsOverlap(const cv::Rect &first, const cv::Rect &second)
+{
+	int w = std::max(first.br().x, second.br().x) - std::min(first.x, second.x);
+	int h = std::max(first.br().y, second.br().y) - std::min(first.y, second.y);
+	return !((w > (first.width + second.width)) || (h > (first.height +  second.height)));
+}
+
+void GetBiggerArea(const cv::Mat &img, const cv::Rect &crop, double extend_x, double extend_y, cv::Mat &crop_img)
+{
+	cv::Rect extend_crop;
+	GetBiggerArea(img, crop, extend_x, extend_y, extend_crop);
+	crop_img = img(extend_crop);
+}
+
+void GetBiggerArea(const cv::Mat &img, const cv::Rect &crop, double extend_x, double extend_y, cv::Rect &extend_crop)
+{
+	assert(extend_x >= 0);
+	assert(extend_y >= 0);
+	int x = crop.x - crop.width*(extend_x/2);
+	int y = crop.y - crop.height*(extend_y/2);
+	int w = crop.width*(1 + extend_x);
+	int h = crop.height*(1 + extend_y);
+
+	x = std::max(0, x);
+	y = std::max(0, y);
+	w = std::min(w, img.cols - x - 1);
+	h = std::min(h, img.rows - y - 1);
+	extend_crop = cv::Rect(x, y, w, h);
+}
+
 void Write2Text(const std::string &text_file_name, const std::string &msg, bool append)
 {
 	std::ofstream pos_list_file;

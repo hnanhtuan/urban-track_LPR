@@ -48,6 +48,7 @@ private:
 		int text_box_resize;
 		double box_min_text_height, box_max_text_height;
 		double long_min_text_height, long_max_text_height;
+		double long_ideal_text_height;
 		double min_text_ratio, max_text_ratio;
 		double min_I_text_ratio, max_I_text_ratio;
 		std::string letter_classifier_param_file;
@@ -85,6 +86,7 @@ private:
 			box_max_text_height = (double)fs["box_max_text_height"];
 			long_min_text_height = (double)fs["long_min_text_height"];
 			long_max_text_height = (double)fs["long_max_text_height"];
+			long_ideal_text_height = (double)fs["long_ideal_text_height"];
 			min_text_ratio = (double)fs["min_text_ratio"];
 			max_text_ratio = (double)fs["max_text_ratio"];
 			min_I_text_ratio = (double)fs["min_I_text_ratio"];
@@ -148,32 +150,21 @@ private:
 			adjust_str(""),
 			row(row),
 			idx(0),
-			matched(true),
-			center(cv::Point(bbox.x + bbox.width/2, bbox.y + bbox.height/2)),
-			shift(cv::Point(0, 0)),
-			scale(1.0) {};
+			center(cv::Point(bbox.x + bbox.width/2, bbox.y + bbox.height/2)) {};
 
 		cv::Rect box;
 		cv::Mat digit_img;
 		std::string str;
 		std::string adjust_str;
 		int row, idx;
-		bool matched;
 		cv::Point center;
-		cv::Point shift;
-		float scale;
 
 		void Update(cv::Mat img, cv::Rect bbox)
 		{
 			cv::Point new_center = cv::Point(bbox.x + bbox.width/2, bbox.y + bbox.height/2);
-//			DMESG("new_center: " << new_center, 5);
-			shift = new_center - center;
-//			DMESG("shift: " << shift, 5);
 			center = new_center;
-			scale = float(bbox.height)/box.height;
 			box = cv::Rect(bbox);
 			digit_img = img(bbox).clone();
-			matched = true;
 		}
 	} Digit_Candidate;
 
@@ -240,8 +231,6 @@ private:
 
 	cv::CascadeClassifier digitsCascade;
 
-	bool IsOverlap(const cv::Rect &first, const cv::Rect &second);
-
 	void Clustering(const cv::Mat &src, const cv::Mat &h_mask, cv::Mat &labels);
 
 	void BestFitLP(const cv::Mat &src, int ncol, int nrow, double thres, cv::Mat &best_LP);
@@ -257,10 +246,6 @@ private:
 	void MatchingMethod(const cv::Mat &img, const LP_Candidate &candidate, cv::Rect &match, int match_method = CV_TM_SQDIFF);
 
 	void CAMshiftMatching(const cv::Mat &img, const LP_Candidate &candidate, cv::Rect &match);
-
-	void IncreaseContrast(const cv::Mat &src, cv::Mat &dst, int tol = 1);
-
-	void IncreaseContrast(const cv::Mat &src, cv::Mat &dst, cv::Vec2i in = cv::Vec2i(0, 255));
 
 	void TextIsForeground(cv::Mat &img, std::vector< cv::Rect > &boxes);
 
@@ -287,12 +272,6 @@ public:
 	void FilterLPByColor(const cv::Mat &LP_img, cv::Mat &LP_crop_img);
 
 	void GetDigitBoxes(cv::Mat &img, bool box_long,  std::vector< cv::Rect > &digit_boxes, cv::Mat &labels);
-
-	void GetBiggerArea(const cv::Mat &img, const cv::Rect &crop, cv::Mat &crop_img);
-
-	void GetBiggerArea(const cv::Mat &img, const cv::Rect &crop, double extend_x, double extend_y, cv::Mat &crop_img);
-
-	void GetBiggerArea(const cv::Mat &img, const cv::Rect &crop, double extend_x, double extend_y, cv::Rect &extend_crop);
 };
 static bool BoxAreaCompare (cv::Rect first, cv::Rect second);
 

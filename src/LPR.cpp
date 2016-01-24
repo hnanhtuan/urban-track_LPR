@@ -164,7 +164,7 @@ void LPR::DetectLP(const cv::Mat &src)
 
 			for ( size_t i = 0; i < LPboxes[0].size(); i++ )
 			{
-				if (IsOverlap((*it), LPboxes[0][i]))
+				if (help::IsRectsOverlap((*it), LPboxes[0][i]))
 				{
 					overlap = true;
 					break;
@@ -186,7 +186,7 @@ void LPR::DetectLP(const cv::Mat &src)
 			bool haveOverlap = false;
 			for (std::vector< cv::Rect >::iterator it = it1 + 1; it != LPboxes[i].end(); )
 			{
-				if (IsOverlap((*it), (*it1)))
+				if (help::IsRectsOverlap((*it), (*it1)))
 				{
 					it1->x = std::min(it1->x, it->x);
 					it1->y = std::min(it1->y, it->y);
@@ -230,8 +230,9 @@ void LPR::DetectLP(const cv::Mat &src)
 		for ( size_t j = 0; j < LPboxes[i].size(); j++ )
 		{
 			bool newLP = true;
-			cv::Mat LP_area;
-			GetBiggerArea(img, LPboxes[i][j], LP_area);
+			cv::Rect LP_area_crop;
+			help::GetBiggerArea(img, LPboxes[i][j], config.extend_area, config.extend_area, LP_area_crop);
+			cv::Mat LP_area = img(LP_area_crop);
 
 			for ( size_t k = 0; k < lp_candidates.size(); k++)
 			{
@@ -256,7 +257,7 @@ void LPR::DetectLP(const cv::Mat &src)
 			if (newLP)
 			{
 				DMESG("Add new candiate: " << LPboxes[i][j], 1);
-				LP_Candidate lp(LP_area, LPboxes[i][j], LP_count++);
+				LP_Candidate lp(LP_area, LP_area_crop, LP_count++);
 				lp_candidates.push_back(lp);
 			}
 		}
@@ -289,7 +290,7 @@ void LPR::MatchingMethod(const cv::Mat &img, const LP_Candidate &candidate, cv::
 		cv::resize(templ, templ, cv::Size(), 0.96, 0.96);
 
 	cv::Rect extend_crop;
-	GetBiggerArea(img, candidate.bounding_box, 3, 3, extend_crop);
+	help::GetBiggerArea(img, candidate.bounding_box, 3, 3, extend_crop);
 	cv::Mat sub_img = img(extend_crop);
 
 	/// Source image to display
@@ -338,7 +339,7 @@ void LPR::CAMshiftMatching(const cv::Mat &img, const LP_Candidate &candidate, cv
 	cv::Mat templ = candidate.orig_lp_img;
 
 	cv::Rect extend_crop;
-	GetBiggerArea(img, candidate.bounding_box, 3, 0.5, extend_crop);
+	help::GetBiggerArea(img, candidate.bounding_box, 3, 0.5, extend_crop);
 	cv::Mat sub_img = img(extend_crop);
 
 	std::vector< cv::Mat > channels;
@@ -428,20 +429,35 @@ void LPR::FindLicenseNumber(const cv::Mat &img)
 		}
 		else
 		{
+			double ratio_sum = 0;
+			for ( size_t i = 0; i < digit_boxes.size(); i++ )
+			{
+				ratio_sum += double(digit_boxes[i].height)/it->lp_img.rows;
+			}
+			double avg_ratio = ratio_sum/digit_boxes.size();
+			DMESG(RED_TEXT << "avg text ratio: " << NORMAL_TEXT << avg_ratio, 3);
+			if (!it->box_long)
+			{
+				DMESG(RED_TEXT << "Adjust lp area" << NORMAL_TEXT, 3);
+				double scale = (avg_ratio/config.long_ideal_text_height) - 1.0;
+				cv::Rect new_lp_crop;
+				help::GetBiggerOrSmallerArea(img, it->bounding_box, scale*1.2, scale*1.2, new_lp_crop);
+				cv::Mat new_lp_img = img(new_lp_crop);
+				it->Update(new_lp_img, new_lp_crop);
+				GetDigitBoxes(it->lp_img, it->box_long, digit_boxes, label);
+			}
+
 			TextIsForeground(label, digit_boxes);
 			cv::imshow("Labels", label);
 			it->digit_candidates.clear();
+
 
 			for (std::vector< cv::Rect >::iterator box_it = digit_boxes.begin(); box_it != digit_boxes.end(); )
 			{
 				double ratio = double(box_it->height)/box_it->width;
 				int num_letter = int(std::round(HEIGHT_WIDTH_RATIO/ratio*2));
-				DMESG("ratio :" << 1/ratio << " -- " << num_letter << " -- " << HEIGHT_WIDTH_RATIO/ratio*2, 3);
-
-//				std::stringstream ss;
-//				double value = HEIGHT_WIDTH_RATIO/ratio*2;
-//				ss << value;
-//				help::Write2Text("ratio_stats.txt", ss.str(), true);
+//				DMESG("ratio :" << 1/ratio << " -- " << num_letter << " -- " << HEIGHT_WIDTH_RATIO/ratio*2, 3);
+//				DMESG(BLUE_TEXT << "text: " << NORMAL_TEXT << double(box_it->height)/it->lp_img.rows, 3);
 
 				if (num_letter == 1)
 				{
@@ -450,20 +466,6 @@ void LPR::FindLicenseNumber(const cv::Mat &img)
 				else if (num_letter == 2)
 				{
 
-				}
-				else if (num_letter == 4)
-				{
-					cv::Rect additional_box(box_it->x + box_it->width/2, box_it->y, box_it->width/2, box_it->height);
-					box_it->width = box_it->width/2;
-					digit_boxes.push_back(additional_box);
-				}
-				else if (num_letter == 6)
-				{
-					cv::Rect additional_box_1(box_it->x + box_it->width/3, box_it->y, box_it->width/3, box_it->height);
-					digit_boxes.push_back(additional_box_1);
-					cv::Rect additional_box_2(box_it->x + 2*box_it->width/3, box_it->y, box_it->width/3, box_it->height);
-					digit_boxes.push_back(additional_box_2);
-					box_it->width = box_it->width/3;
 				}
 				else if (num_letter == 3)
 				{
@@ -494,6 +496,21 @@ void LPR::FindLicenseNumber(const cv::Mat &img)
 					box_it->width = min_idx;
 					help::PlotChart(data, "Chart");
 				}
+				else if (num_letter == 4)
+				{
+					cv::Rect additional_box(box_it->x + box_it->width/2, box_it->y, box_it->width/2, box_it->height);
+					box_it->width = box_it->width/2;
+					digit_boxes.push_back(additional_box);
+				}
+				else if (num_letter == 6)
+				{
+					cv::Rect additional_box_1(box_it->x + box_it->width/3, box_it->y, box_it->width/3, box_it->height);
+					digit_boxes.push_back(additional_box_1);
+					cv::Rect additional_box_2(box_it->x + 2*box_it->width/3, box_it->y, box_it->width/3, box_it->height);
+					digit_boxes.push_back(additional_box_2);
+					box_it->width = box_it->width/3;
+				}
+
 
 				if (num_letter == 0)
 					box_it = digit_boxes.erase(box_it);
@@ -501,6 +518,7 @@ void LPR::FindLicenseNumber(const cv::Mat &img)
 					box_it++;
 
 			}
+
 
 			std::sort(digit_boxes.begin(), digit_boxes.end(), LPTextLocCompare);
 
@@ -526,6 +544,7 @@ void LPR::FindLicenseNumber(const cv::Mat &img)
 				it->AddDigit(digit_boxes[i], row);
 			}
 
+			// Find missing digit boxes
 			if (it->box_long)
 			{
 				for ( size_t i = 0; i < it->digit_candidates.size() - 1; i++ )
@@ -534,12 +553,56 @@ void LPR::FindLicenseNumber(const cv::Mat &img)
 					{
 						double ratio = double(it->digit_candidates[i].box.height)/(it->digit_candidates[i + 1].box.x - it->digit_candidates[i].box.br().x);
 						int num_letter = int(std::round(HEIGHT_WIDTH_RATIO/ratio*2));
-						std::cout << BLUE_TEXT << "num_letter: " << NORMAL_TEXT << num_letter << " -- " << HEIGHT_WIDTH_RATIO/ratio*2 << std::endl;
+//						std::cout << BLUE_TEXT << "num_letter: " << NORMAL_TEXT << num_letter << " -- " << HEIGHT_WIDTH_RATIO/ratio*2 << std::endl;
 						if ((HEIGHT_WIDTH_RATIO/ratio*2 > 0.8))
 						{
 							cv::Rect additional_box(it->digit_candidates[i].box.br().x, it->digit_candidates[i].box.y,
 									(it->digit_candidates[i + 1].box.x - it->digit_candidates[i].box.br().x), it->digit_candidates[i].box.height);
-							it->AddDigit(additional_box, 0);
+
+							if ((num_letter == 1) || (num_letter == 2))
+							{
+								it->AddDigit(additional_box, 0);
+							}
+							else if ((num_letter == 3) || (num_letter == 5))
+							{
+								cv::Mat src = label(additional_box);
+								std::vector< int > data;
+								int bin_w = 1;
+								for ( int i = 0; i < src.cols - 2; i +=  bin_w)
+								{
+									int non_zero = cv::countNonZero(src.colRange(i, i + bin_w));
+									data.push_back(non_zero);
+								}
+
+								int start = 10;
+								int end = additional_box.width - 10;
+								int min = additional_box.height;
+								int min_idx;
+								for ( int j = start; j < end; j++ )
+								{
+									if (data[j] < min)
+									{
+										min = data[j];
+										min_idx = j;
+									}
+								}
+
+								cv::Rect additional_box_1(additional_box.x + min_idx, additional_box.y,
+										additional_box.width - min_idx, additional_box.height);
+								digit_boxes.push_back(additional_box_1);
+								it->AddDigit(additional_box_1, 0);
+								additional_box.width = min_idx;
+								it->AddDigit(additional_box, 0);
+								help::PlotChart(data, "Chart");
+							}
+							else if (num_letter == 4)
+							{
+								cv::Rect additional_box_1(additional_box.x + additional_box.width/2, additional_box.y,
+										additional_box.width/2, additional_box.height);
+								additional_box.width = additional_box.width/2;
+								it->AddDigit(additional_box_1, 0);
+								it->AddDigit(additional_box, 0);
+							}
 						}
 					}
 				}
@@ -550,12 +613,57 @@ void LPR::FindLicenseNumber(const cv::Mat &img)
 				{
 					double ratio = double(it->digit_candidates[i].box.height)/(it->digit_candidates[i + 1].box.x - it->digit_candidates[i].box.br().x);
 					int num_letter = int(std::round(HEIGHT_WIDTH_RATIO/ratio*2));
-					std::cout << BLUE_TEXT << "num_letter: " << NORMAL_TEXT << num_letter << " -- " << HEIGHT_WIDTH_RATIO/ratio*2 << std::endl;
+//					std::cout << BLUE_TEXT << "num_letter: " << NORMAL_TEXT << num_letter << " -- " << HEIGHT_WIDTH_RATIO/ratio*2 << std::endl;
 					if ((HEIGHT_WIDTH_RATIO/ratio*2 > 0.8))
 					{
-						cv::Rect additional_box(it->digit_candidates[i].box.br().x, it->digit_candidates[i].box.y,
-								(it->digit_candidates[i + 1].box.x - it->digit_candidates[i].box.br().x), it->digit_candidates[i].box.height);
-						it->AddDigit(additional_box, 0);
+						cv::Rect additional_box(it->digit_candidates[i].box.br().x, std::min(it->digit_candidates[i].box.y, it->digit_candidates[i + 1].box.y),
+								(it->digit_candidates[i + 1].box.x - it->digit_candidates[i].box.br().x),
+								std::max(it->digit_candidates[i].box.height, it->digit_candidates[i + 1].box.height));
+
+						if ((num_letter == 1) || (num_letter == 2))
+						{
+							it->AddDigit(additional_box, 0);
+						}
+						else if (num_letter == 3)
+						{
+							cv::Mat src = label(additional_box);
+							std::vector< int > data;
+							int bin_w = 1;
+							for ( int i = 0; i < src.cols - 2; i +=  bin_w)
+							{
+								int non_zero = cv::countNonZero(src.colRange(i, i + bin_w));
+								data.push_back(non_zero);
+							}
+
+							int start = 10;
+							int end = additional_box.width - 10;
+							int min = additional_box.height;
+							int min_idx;
+							for ( int j = start; j < end; j++ )
+							{
+								if (data[j] < min)
+								{
+									min = data[j];
+									min_idx = j;
+								}
+							}
+
+							cv::Rect additional_box_1(additional_box.x + min_idx, additional_box.y,
+									additional_box.width - min_idx, additional_box.height);
+							digit_boxes.push_back(additional_box_1);
+							it->AddDigit(additional_box_1, 0);
+							additional_box.width = min_idx;
+							it->AddDigit(additional_box, 0);
+							help::PlotChart(data, "Chart");
+						}
+						else if (num_letter == 4)
+						{
+							cv::Rect additional_box_1(additional_box.x + additional_box.width/2, additional_box.y,
+									additional_box.width/2, additional_box.height);
+							additional_box.width = additional_box.width/2;
+							it->AddDigit(additional_box_1, 0);
+							it->AddDigit(additional_box, 0);
+						}
 					}
 				}
 			}
@@ -638,7 +746,7 @@ void LPR::FindLicenseNumber(const cv::Mat &img)
 //			std::sort(it->digit_candidates.begin(), it->digit_candidates.end(), DigitCandidateTextLocCompare);
 			help::DrawBoxesAndShow(it->lp_img, it->GetDigitBoxes(), "Digits");
 //			cv::waitKey(0);
-			std::cout << "Image size: " << it->lp_img.rows << " x " << it->lp_img.cols << std::endl;
+//			std::cout << "Image size: " << it->lp_img.rows << " x " << it->lp_img.cols << std::endl;
 
 			it->license_number = ClassifyDigits((*it));
 			DMESG("ID: " << YELLOW_TEXT << it->id << NORMAL_TEXT <<  " -- License number: " << GREEN_TEXT << it->license_number << NORMAL_TEXT, 3);
@@ -785,98 +893,6 @@ void LPR::TextIsForeground(cv::Mat &img, std::vector< cv::Rect > &boxes)
 		cv::bitwise_not(img, img);
 }
 
-void LPR::GetBiggerArea(const cv::Mat &img, const cv::Rect &crop, cv::Mat &crop_img)
-{
-	GetBiggerArea(img, crop, config.extend_area, config.extend_area, crop_img);
-}
-
-void LPR::GetBiggerArea(const cv::Mat &img, const cv::Rect &crop, double extend_x, double extend_y, cv::Mat &crop_img)
-{
-	cv::Rect extend_crop;
-	GetBiggerArea(img, crop, extend_x, extend_y, extend_crop);
-	crop_img = img(extend_crop);
-}
-
-void LPR::GetBiggerArea(const cv::Mat &img, const cv::Rect &crop, double extend_x, double extend_y, cv::Rect &extend_crop)
-{
-	int x = crop.x - crop.width*(extend_x/2);
-	int y = crop.y - crop.height*(extend_y/2);
-	int w = crop.width*(1 + extend_x);
-	int h = crop.height*(1 + extend_y);
-
-	x = std::max(0, x);
-	y = std::max(0, y);
-	w = std::min(w, img.cols - x - 1);
-	h = std::min(h, img.rows - y - 1);
-	extend_crop = cv::Rect(x, y, w, h);
-}
-
-void LPR::IncreaseContrast(const cv::Mat &src, cv::Mat &dst, int tol)
-{
-	cv::Vec2i in  = cv::Vec2i(0, 255);
-	cv::Vec2i out = cv::Vec2i(0, 255);
-	dst = src.clone();
-
-	tol = std::max(0, std::min(100, tol));
-
-	if (tol > 0)
-	{
-		// Compute in and out limits
-
-		// Histogram
-		std::vector<int> hist(256, 0);
-		for (int r = 0; r < src.rows; ++r) {
-			for (int c = 0; c < src.cols; ++c) {
-				hist[src.at<uchar>(r,c)]++;
-			}
-		}
-
-		// Cumulative histogram
-		std::vector<int> cum = hist;
-		for (size_t i = 1; i < hist.size(); ++i) {
-			cum[i] = cum[i - 1] + hist[i];
-		}
-
-		// Compute bounds
-		int total = src.rows * src.cols;
-		int low_bound = total * tol / 100;
-		int upp_bound = total * (100-tol) / 100;
-		in[0] = std::distance(cum.begin(), std::lower_bound(cum.begin(), cum.end(), low_bound));
-		in[1] = std::distance(cum.begin(), std::lower_bound(cum.begin(), cum.end(), upp_bound));
-	}
-
-	// Stretching
-	float scale = float(out[1] - out[0]) / float(in[1] - in[0]);
-	for (int r = 0; r < dst.rows; ++r)
-	{
-		for (int c = 0; c < dst.cols; ++c)
-		{
-			int vs = std::max(src.at<uchar>(r, c) - in[0], 0);
-			int vd = std::min(int(vs * scale + 0.5f) + out[0], out[1]);
-			dst.at<uchar>(r, c) = cv::saturate_cast<uchar>(vd);
-		}
-	}
-//	cv::imshow("Contrast", dst);
-}
-
-void LPR::IncreaseContrast(const cv::Mat &src, cv::Mat &dst, cv::Vec2i in)
-{
-	cv::Vec2i out = cv::Vec2i(0, 255);
-	dst = src.clone();
-
-	// Stretching
-	float scale = float(out[1] - out[0]) / float(in[1] - in[0]);
-	for (int r = 0; r < dst.rows; ++r)
-	{
-		for (int c = 0; c < dst.cols; ++c)
-		{
-			int vs = std::max(src.at<uchar>(r, c) - in[0], 0);
-			int vd = std::min(int(vs * scale + 0.5f) + out[0], out[1]);
-			dst.at<uchar>(r, c) = cv::saturate_cast<uchar>(vd);
-		}
-	}
-}
-
 void LPR::ShowLPs()
 {
 	if (lp_candidates.size() == 0)
@@ -908,6 +924,7 @@ void LPR::ShowLPs()
 	for ( size_t i = 0; i < lp_candidates.size(); i++)
 	{
 		cv::Mat lp = lp_candidates[i].lp_img.clone();
+		help::DrawText(help::Num2String(lp_candidates[i].id, 0), cv::Point(0, 0), lp);
 		std::vector< cv::Rect > digit_boxes = lp_candidates[i].GetDigitBoxes();
 		for ( size_t j = 0; j < digit_boxes.size(); j++)
 		{
@@ -1140,7 +1157,7 @@ std::string LPR::ClassifyDigits(LP_Candidate &candidate)
 	if (img.channels() == 3)
 		cv::cvtColor(img, img, CV_RGB2GRAY);
 
-	IncreaseContrast(img, img, 5);
+	help::ImAdjust(img, img, 5);
 	std::vector< cv::Rect > digit_boxes = candidate.GetDigitBoxes();
 //	cv::imshow("LP better contrast", img);
 //	cv::waitKey(0);
@@ -1163,13 +1180,6 @@ void LPR::FindLines(const bool box_long, std::vector< cv::Rect > &digit_boxes)
 	{
 
 	}
-}
-
-bool LPR::IsOverlap(const cv::Rect &first, const cv::Rect &second)
-{
-	int w = std::max(first.br().x, second.br().x) - std::min(first.x, second.x);
-	int h = std::max(first.br().y, second.br().y) - std::min(first.y, second.y);
-	return !((w > (first.width + second.width)) || (h > (first.height +  second.height)));
 }
 
 void LPR::FilterOutlierByHeight(std::vector< cv::Rect > &boxes)
