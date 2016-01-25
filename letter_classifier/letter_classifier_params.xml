@@ -13,15 +13,15 @@
 <max_samples_class>200</max_samples_class>
 <dataset_bin_filename>dataset/raw_images.bin</dataset_bin_filename>
 <labels_bin_filename>dataset/labels.bin</labels_bin_filename>
-<classes_bin_filename>dataset/96/classes.bin</classes_bin_filename>
-<pca_mean_bin_filename>dataset/96/pca_mean.bin</pca_mean_bin_filename>
-<pca_coeff_bin_filename>dataset/96/pca_coeff.bin</pca_coeff_bin_filename>
-<pca_trans_bin_filename>dataset/pca_trans.bin</pca_trans_bin_filename>
+<classes_bin_filename>letter_classifier/classes.bin</classes_bin_filename>
+<pca_mean_bin_filename>letter_classifier/pca_mean.bin</pca_mean_bin_filename>
+<pca_coeff_bin_filename>letter_classifier/pca_coeff.bin</pca_coeff_bin_filename>
+<pca_trans_bin_filename>letter_classifier/pca_trans.bin</pca_trans_bin_filename>
 <pca_max_comp>0</pca_max_comp>
 <pca_ret_var>0.9</pca_ret_var>
 
 
-<svm_model_file_name>svm_models/digits_classifier_96.xml</svm_model_file_name>
+<svm_model_file_name>letter_classifier/letter_classifier.xml</svm_model_file_name>
 <svm_max_iter>10000</svm_max_iter>
 <svm_epsilon>1e-7</svm_epsilon>
 <n_folds>5</n_folds>

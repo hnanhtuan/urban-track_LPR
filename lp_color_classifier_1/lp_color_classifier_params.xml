@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<opencv_storage>
+<input_dir>/home/anhxtuan/Documents/License_Plate/LPR/dataset/lp_color/</input_dir>
+
+<image_size>25 15</image_size>
+<max_samples_class>450</max_samples_class>
+<train_test_ratio>4</train_test_ratio>
+
+<raw_trainset_bin_filename>dataset/raw_trainset.bin</raw_trainset_bin_filename>
+<trainset_bin_filename>dataset/trainset.bin</trainset_bin_filename>
+<train_labels_bin_filename>dataset/train_labels.bin</train_labels_bin_filename>
+
+<raw_testset_bin_filename>dataset/raw_testset.bin</raw_testset_bin_filename>
+<testset_bin_filename>dataset/testset.bin</testset_bin_filename>
+<test_labels_bin_filename>dataset/test_labels.bin</test_labels_bin_filename>
+
+<classes_bin_filename>lp_color_classifier/classes.bin</classes_bin_filename>
+<pca_mean_bin_filename>lp_color_classifier/pca_mean.bin</pca_mean_bin_filename>
+<pca_coeff_bin_filename>lp_color_classifier/pca_coeff.bin</pca_coeff_bin_filename>
+<pca_trans_bin_filename>lp_color_classifier/pca_trans.bin</pca_trans_bin_filename>
+<pca_max_comp>0</pca_max_comp>
+<pca_ret_var>0.90</pca_ret_var>
+
+
+<svm_model_file_name>lp_color_classifier/lp_color_classifier.xml</svm_model_file_name>
+<svm_max_iter>5000</svm_max_iter>
+<svm_epsilon>1e-6</svm_epsilon>
+<n_folds>5</n_folds>
+<c_grid_min_val>0.001</c_grid_min_val>
+<c_grid_max_val>0.5</c_grid_max_val>
+<c_grid_log_step>5</c_grid_log_step>
+<gamma_grid_min_val>1e-4</gamma_grid_min_val>
+<gamma_grid_max_val>1e-2</gamma_grid_max_val>
+<gamma_grid_log_step>5</gamma_grid_log_step>
+</opencv_storage>

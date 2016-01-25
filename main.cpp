@@ -15,8 +15,6 @@
 #include <algorithm>
 #include <iomanip>      // std::setfill, std::setw
 
-#include "src/def.hpp"
-#include "src/Tracking.hpp"
 #include "src/LPR.hpp"
 #include "src/LetterClassifier.hpp"
 #include "src/HelpFnc.hpp"
@@ -107,13 +105,13 @@ int main(int argc, char** argv) {
 	timer class_timer("Classify:	");
 
 
-	DMESG("Parsing argument ... ", 1);
+	DMESG("Parsing argument ... ");
 	ArgumentParser(argc, argv);
 
-	DMESG("Initializing LPR ... ", 1);
+	DMESG("Initializing LPR ... ");
 	LPR lpr(licensePlate_detection_config_file);
 
-	DMESG("Opening video ... ", 1);
+	DMESG("Opening video ... ");
 	cv::VideoCapture cap(video_file);
 	if (!cap.isOpened())  		// if not success, exit program
 	{
@@ -129,8 +127,6 @@ int main(int argc, char** argv) {
 	cv::Rect crop(0, height*3/10, width, height/2);
 	cv::Mat frame, detect_area, result;
 
-	int lp_Cnt = 3541;
-	int digit_cnt = 21050;
 	while (true)
 	{
 		for ( int s = 0; s <= SKIP_FRAME; s++)
@@ -142,7 +138,7 @@ int main(int argc, char** argv) {
 			}
 		}
 
-		DMESG(YELLOW_TEXT << "----- NEW FRAME ----- " << NORMAL_TEXT, 1);
+//		DMESG(YELLOW_TEXT << "----- NEW FRAME ----- " << NORMAL_TEXT);
 		detect_area = frame(crop);
 //		org_frame.display_frame(detect_area);
 

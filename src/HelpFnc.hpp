@@ -17,8 +17,6 @@
 #include <fstream>
 #include <iomanip>      // std::setfill, std::setw
 
-#include "def.hpp"
-
 // Intel TBB
 #include "tbb/tbb.h"
 
@@ -43,12 +41,25 @@
 #include <boost/serialization/vector.hpp>
 BOOST_SERIALIZATION_SPLIT_FREE(::cv::Mat)
 
+
+#define RED_TEXT			( "\033[22;31m" )
+#define NORMAL_TEXT			( "\e[m" )
+#define GREEN_TEXT			( "\e[0;32m" )
+#define YELLOW_TEXT			( "\e[0;33m" )
+#define BLUE_TEXT			( "\e[0;34m" )
+
+#define DMESG( v ) 	do { std::cout << v << std::endl; } while ( false )
+
 #define X_TRANSLATION	(0)
 #define Y_TRANSLATION	(0)
 #define Z_TRANSLATION	(380)
 #define FOCAL_IN_PX		(378)
 
 namespace help {
+	void Rename(const std::string &src_file, const std::string &dst_file);
+
+	double Accuracy(const cv::Mat &labels, const cv::Mat &predicts);
+
 	std::string Num2String(int num, int padding_width = 0);
 
 	void GetBiggerOrSmallerArea(const cv::Mat &img, const cv::Rect &crop, double scale_x, double scale_y, cv::Mat &scale_img);
@@ -88,6 +99,8 @@ namespace help {
 	void ImAdjust(const cv::Mat &src, cv::Mat &dst, int tol = 1);
 
 	void ImAdjust(const cv::Mat &src, cv::Mat &dst, cv::Vec2i in = cv::Vec2i(0, 255));
+
+	void DoHist(const cv::Mat &img, cv::Mat &hist);
 
 	void DoHist(const cv::Mat &img, bool wait = false);
 

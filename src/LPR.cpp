@@ -27,6 +27,7 @@ LPR::LPR(const std::string &config_filename)
 	cascades.push_back(cascade2);
 
 	classifier.Initialize(config.letter_classifier_param_file);
+	lpColorClassifier.Initialize(config.lp_color_classifier_param_file);
 
 	LP_count = 0;
 
@@ -92,7 +93,8 @@ void LPR::DetectLP(const cv::Mat &src)
 //	float ratio = float(src.rows)/config.lp_detect_area_height;
 	float ratio = 1.;
 	cv::resize(src, img, cv::Size(), ratio, ratio);
-	DMESG("1/ Cascade detector", 1);
+
+//	DMESG("1/ Cascade detector");
 	std::vector< std::vector< cv::Rect > > LPboxes;
 	LPboxes.resize(cascades.size());
 
@@ -153,7 +155,7 @@ void LPR::DetectLP(const cv::Mat &src)
 		}
 	});
 
-	DMESG("2/ Remove overlapping", 1);
+//	DMESG("2/ Remove overlapping");
 	// Remove long LP if there is already a box LP.
 	std::vector< cv::Rect >::iterator it;
 	if (LPboxes[0].size() > 0)
@@ -218,7 +220,7 @@ void LPR::DetectLP(const cv::Mat &src)
 		}
 	}
 
-	DMESG("3/ Mapping LP candidates between frames", 1);
+//	DMESG("3/ Mapping LP candidates between frames");
 	for ( size_t i = 0; i < lp_candidates.size(); i++)
 	{
 		lp_candidates[i].matched = false;
@@ -239,31 +241,35 @@ void LPR::DetectLP(const cv::Mat &src)
 				double matchDist = CalculateMatchDistance(lp_candidates[k].lp_img, LP_area);
 				if (matchDist < 40.0)
 				{
+					int classIdx = lpColorClassifier.Classify(LP_area);
+					lp_candidates[k].sColor = lpColorClassifier.classes[classIdx];
 					lp_candidates[k].Update(LP_area, LPboxes[i][j]);
 					lp_candidates[k].matched = true;
 					newLP = false;
-					DMESG("Match distance: " << GREEN_TEXT << matchDist << NORMAL_TEXT, 2);
+//					DMESG("Match distance: " << GREEN_TEXT << matchDist << NORMAL_TEXT);
 					break;
 				}
 				else
 				{
-					DMESG("Candidate:  " << lp_candidates[k].bounding_box, 2);
-					DMESG("New object: " << LPboxes[i][j], 2);
-					DMESG("Match distance: " << YELLOW_TEXT << matchDist << NORMAL_TEXT, 2);
+//					DMESG("Candidate:  " << lp_candidates[k].bounding_box);
+//					DMESG("New object: " << LPboxes[i][j]);
+//					DMESG("Match distance: " << YELLOW_TEXT << matchDist << NORMAL_TEXT);
 					wait = true;
 				}
 			}
 
 			if (newLP)
 			{
-				DMESG("Add new candiate: " << LPboxes[i][j], 1);
-				LP_Candidate lp(LP_area, LP_area_crop, LP_count++);
+//				DMESG("Add new candiate: " << LPboxes[i][j]);
+				int classIdx = lpColorClassifier.Classify(LP_area);
+//				std::cout << RED_TEXT << classIdx << " - " << lpColorClassifier.classes[classIdx] << NORMAL_TEXT  << std::endl;
+				LP_Candidate lp(LP_area, LP_area_crop, LP_count++, lpColorClassifier.classes[classIdx]);
 				lp_candidates.push_back(lp);
 			}
 		}
 	}
 
-	DMESG("4/ Find the LP cannot detect by cascade detector", 1);
+//	DMESG("4/ Find the LP cannot detect by cascade detector");
 	for ( size_t i = 0; i < lp_candidates.size(); i++)
 	{
 		if (!lp_candidates[i].matched)
@@ -283,7 +289,7 @@ void LPR::DetectLP(const cv::Mat &src)
 
 void LPR::MatchingMethod(const cv::Mat &img, const LP_Candidate &candidate, cv::Rect &match, int match_method)
 {
-	DMESG("Find Matching ... ", 1);
+//	DMESG("Find Matching ... ");
 	cv::Mat templ = candidate.orig_lp_img;
 	float text_box_ratio = float(candidate.digit_candidates[0].box.height)/templ.rows;
 	if ((candidate.box_long && (text_box_ratio < 0.35)) || (!candidate.box_long && (text_box_ratio < 0.7)))
@@ -352,7 +358,7 @@ void LPR::CAMshiftMatching(const cv::Mat &img, const LP_Candidate &candidate, cv
 
 float LPR::CalculateMatchDistance(const cv::Mat &img1, const cv::Mat &img2)
 {
-	DMESG("Calculate Match Distance ... ", 1);
+//	DMESG("Calculate Match Distance ... ");
 	cv::Mat im1, im2;
 	double ratio = (double)200.0/img1.rows;
 
@@ -372,14 +378,14 @@ float LPR::CalculateMatchDistance(const cv::Mat &img1, const cv::Mat &img2)
 	cv::Mat descImg1, descImg2;							// Descriptor for img1 and img2
 
 
-	DMESG("		Detect and compute keypoints ... ", 1);
+//	DMESG("		Detect and compute keypoints ... ");
 	features->detectAndCompute(im1, cv::Mat(), keyImg1, descImg1, false);
 	features->detectAndCompute(im2, cv::Mat(), keyImg2, descImg2, false);
 
 	double cumSumDist2=0;
 	try
 	{
-		DMESG("		Match ... ", 1);
+//		DMESG("		Match ... ");
 		descriptorMatcher->match(descImg1, descImg2, matches, cv::Mat());
 
 		cv::Mat index;
@@ -401,7 +407,7 @@ float LPR::CalculateMatchDistance(const cv::Mat &img1, const cv::Mat &img2)
 
 		cv::sortIdx(tab, index, cv::SORT_EVERY_COLUMN + cv::SORT_ASCENDING);
 
-		DMESG("		Calculate accumulative distance ... ", 1);
+//		DMESG("		Calculate accumulative distance ... ");
 		for (int i = 0; i < std::min(20, nbMatch); i++ )
 		{
 //			cv::Point2d p=keyImg1[matches[index.at<int>(i, 0)].queryIdx].pt-keyImg2[matches[index.at<int>(i, 0)].trainIdx].pt;
@@ -435,12 +441,12 @@ void LPR::FindLicenseNumber(const cv::Mat &img)
 				ratio_sum += double(digit_boxes[i].height)/it->lp_img.rows;
 			}
 			double avg_ratio = ratio_sum/digit_boxes.size();
-			DMESG(RED_TEXT << "avg text ratio: " << NORMAL_TEXT << avg_ratio, 3);
+//			DMESG(RED_TEXT << "avg text ratio: " << NORMAL_TEXT << avg_ratio);
 			if (!it->box_long)
 			{
 				if ((avg_ratio < 0.46) || (avg_ratio > 0.52))
 				{
-					DMESG(RED_TEXT << "Adjust lp area" << NORMAL_TEXT, 3);
+//					DMESG(RED_TEXT << "Adjust lp area" << NORMAL_TEXT);
 					double scale = (avg_ratio/config.long_ideal_text_height) - 1.0;
 					cv::Rect new_lp_crop;
 					help::GetBiggerOrSmallerArea(img, it->bounding_box, scale*1.2, scale*1.2, new_lp_crop);
@@ -752,7 +758,7 @@ void LPR::FindLicenseNumber(const cv::Mat &img)
 //			std::cout << "Image size: " << it->lp_img.rows << " x " << it->lp_img.cols << std::endl;
 
 			it->license_number = ClassifyDigits((*it));
-			DMESG("ID: " << YELLOW_TEXT << it->id << NORMAL_TEXT <<  " -- License number: " << GREEN_TEXT << it->license_number << NORMAL_TEXT, 3);
+			DMESG("ID: " << YELLOW_TEXT << it->id << NORMAL_TEXT <<  " -- License number: " << GREEN_TEXT << it->license_number << NORMAL_TEXT);
 //			cv::waitKey(0);
 			it++;
 		}
@@ -927,7 +933,7 @@ void LPR::ShowLPs()
 	for ( size_t i = 0; i < lp_candidates.size(); i++)
 	{
 		cv::Mat lp = lp_candidates[i].lp_img.clone();
-		help::DrawText(help::Num2String(lp_candidates[i].id, 0), cv::Point(0, 0), lp);
+		help::DrawText(help::Num2String(lp_candidates[i].id, 0) + " - " + lp_candidates[i].sColor, cv::Point(0, 0), lp);
 		std::vector< cv::Rect > digit_boxes = lp_candidates[i].GetDigitBoxes();
 		for ( size_t j = 0; j < digit_boxes.size(); j++)
 		{
@@ -1170,19 +1176,7 @@ std::string LPR::ClassifyDigits(LP_Candidate &candidate)
 
 void LPR::FindLines(const bool box_long, std::vector< cv::Rect > &digit_boxes)
 {
-	// Get height median
-	int height_median;
-	std::sort(digit_boxes.begin(), digit_boxes.end(), BoxHeightCompare);
-	if ((digit_boxes.size() % 2) == 1)
-		height_median = digit_boxes[digit_boxes.size()/2].height;
-	else
-		height_median = (digit_boxes[digit_boxes.size()/2].height + digit_boxes[digit_boxes.size()/2 - 1].height)/2;
 
-	// Long
-	if (!box_long)
-	{
-
-	}
 }
 
 void LPR::FilterOutlierByHeight(std::vector< cv::Rect > &boxes)

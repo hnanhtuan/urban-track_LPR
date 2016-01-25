@@ -9,6 +9,21 @@
 
 namespace help {
 
+void Rename(const std::string &src_file, const std::string &dst_file)
+{
+	std::rename(src_file.c_str(), dst_file.c_str());
+}
+
+double Accuracy(const cv::Mat &labels, const cv::Mat &predicts)
+{
+	assert(labels.size() == predicts.size());
+	assert(labels.type() == predicts.type());
+
+	cv::Mat accuracy;
+	cv::compare(labels, predicts, accuracy, CV_CMP_EQ);
+	return double(cv::countNonZero(accuracy))/accuracy.size().area();
+}
+
 std::string Num2String(int num, int padding_width)
 {
 	std::stringstream ss;
@@ -281,6 +296,21 @@ void ImAdjust(const cv::Mat &src, cv::Mat &dst, cv::Vec2i in)
 			dst.at<uchar>(r, c) = cv::saturate_cast<uchar>(vd);
 		}
 	}
+}
+
+void DoHist(const cv::Mat &img, cv::Mat &hist)
+{
+	/// Establish the number of bins
+	int histSize = 256;
+
+	/// Set the ranges ( for B,G,R) )
+	float range[] = { 0, 256 } ;
+	const float* histRange = { range };
+
+	bool uniform = true; bool accumulate = false;
+
+	/// Compute the histograms:
+	cv::calcHist( &img, 1, 0, cv::Mat(), hist, 1, &histSize, &histRange, uniform, accumulate );
 }
 
 void DoHist(const cv::Mat &src, bool wait)

@@ -16,8 +16,8 @@
 #include <string>
 #include <math.h>
 
-#include "def.hpp"
 #include "LetterClassifier.hpp"
+#include "LpColorClassifier.hpp"
 #include "HelpFnc.hpp"
 
 // Intel TBB
@@ -52,6 +52,7 @@ private:
 		double min_text_ratio, max_text_ratio;
 		double min_I_text_ratio, max_I_text_ratio;
 		std::string letter_classifier_param_file;
+		std::string lp_color_classifier_param_file;
 
 		std::vector< cv::Scalar > LP_hsv_lower_range, LP_hsv_upper_range;
 		double extend_area;
@@ -91,7 +92,9 @@ private:
 			max_text_ratio = (double)fs["max_text_ratio"];
 			min_I_text_ratio = (double)fs["min_I_text_ratio"];
 			max_I_text_ratio = (double)fs["max_I_text_ratio"];
+
 			fs["letter_classifier_param_file"] >> letter_classifier_param_file;
+			fs["lp_color_classifier_param_file"] >> lp_color_classifier_param_file;
 
 			cv::Scalar yellow_lower_range, red_lower_range, black_lower_range, white_lower_range;
 			fs["yellow_lower_range"] >> yellow_lower_range;
@@ -132,7 +135,7 @@ private:
 		}
 	} LPR_Config;
 
-	LetterClassifier classifier;
+
 
 	typedef enum LP_Color {
 		YELLOW,
@@ -169,13 +172,14 @@ private:
 	} Digit_Candidate;
 
 	typedef struct LP_Candidate {
-		LP_Candidate(cv::Mat img, cv::Rect box, int count) :
+		LP_Candidate(cv::Mat img, cv::Rect box, int count, std::string color) :
 			id(count),
 			box_long(box.width/box.height < 3),
 			bounding_box(cv::Rect(box)),
 			orig_lp_img(img.clone()),
 			lp_img(img.clone()),
 			color(UNKNOWN),
+			sColor(color),
 			digit_candidates(),
 			license_number(""),
 			matched(true),
@@ -187,6 +191,7 @@ private:
 		cv::Mat 						orig_lp_img;
 		cv::Mat 						lp_img;
 		LP_Color 						color;
+		std::string						sColor;
 		std::vector< Digit_Candidate > 	digit_candidates;
 		std::string 					license_number;
 
@@ -218,6 +223,10 @@ private:
 		}
 
 	} LP_Candidate;
+
+	LetterClassifier classifier;
+
+	LpColor lpColorClassifier;
 
 	int digit_cnt;
 

@@ -23,7 +23,8 @@
 <max_text_ratio>1.8</max_text_ratio>
 <min_I_text_ratio>3.2</min_I_text_ratio>
 <max_I_text_ratio>4.7</max_I_text_ratio>
-<letter_classifier_param_file>letter_classifier_params.xml</letter_classifier_param_file>
+<letter_classifier_param_file>letter_classifier/letter_classifier_params.xml</letter_classifier_param_file>
+<lp_color_classifier_param_file>lp_color_classifier/lp_color_classifier_params.xml</lp_color_classifier_param_file>
 
 <!-- LP filter by color -->
 <extend_area>0.1</extend_area>
